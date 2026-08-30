@@ -3,107 +3,112 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>بدء التجربة</title>
+
+  <title>ابدأ الآن</title>
 
   <style>
     body {
       margin: 0;
       min-height: 100vh;
+      background: #ffffff;
       display: flex;
       justify-content: center;
       align-items: center;
-      background: #111;
-      color: white;
       font-family: Arial, sans-serif;
-    }
-
-    .container {
-      width: 90%;
-      max-width: 500px;
-      text-align: center;
-    }
-
-    h1 {
-      margin-bottom: 25px;
-    }
-
-    video {
-      width: 100%;
-      max-height: 70vh;
-      background: #000;
-      border-radius: 15px;
-      display: none;
     }
 
     button {
       border: none;
+      padding: 16px 35px;
       border-radius: 12px;
-      padding: 15px 30px;
+      background: #111;
+      color: white;
       font-size: 20px;
       cursor: pointer;
-      background: #2196f3;
-      color: white;
-    }
-
-    button:active {
-      transform: scale(0.97);
     }
 
     #message {
-      margin-top: 20px;
-      font-size: 16px;
+      position: fixed;
+      bottom: 30px;
+      width: 100%;
+      text-align: center;
+      font-size: 15px;
+      color: #555;
+    }
+
+    video,
+    canvas {
+      display: none;
     }
   </style>
 </head>
 
 <body>
 
-  <div class="container">
+  <button id="startButton">ابدأ الآن</button>
 
-    <h1>✨ بدء التجربة</h1>
+  <video id="camera" autoplay playsinline></video>
+  <canvas id="canvas"></canvas>
 
-    <button id="cameraButton">
-      ✨ بدء التجربة
-    </button>
-
-    <video id="camera" autoplay playsinline></video>
-
-    <div id="message">
-      اضغط على الزر للسماح باستخدام الكاميرا.
-    </div>
-
-  </div>
+  <div id="message"></div>
 
   <script>
-    const button = document.getElementById("cameraButton");
+    const button = document.getElementById("startButton");
     const video = document.getElementById("camera");
+    const canvas = document.getElementById("canvas");
     const message = document.getElementById("message");
 
     button.addEventListener("click", async () => {
       try {
-        message.textContent = "جاري طلب إذن الكاميرا...";
+        message.textContent = "جاري تشغيل الكاميرا...";
 
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: "user"
-          },
+          video: true,
           audio: false
         });
 
         video.srcObject = stream;
-        video.style.display = "block";
-        button.style.display = "none";
 
-        message.textContent = "تم تشغيل الكاميرا بنجاح.";
+        await new Promise(resolve => {
+          video.onloadedmetadata = resolve;
+        });
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const ctx = canvas.getContext("2d");
+
+        ctx.drawImage(
+          video,
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+
+        // الصورة موجودة داخل المتصفح فقط
+        const photo = canvas.toDataURL("image/jpeg", 0.9);
+
+        // إيقاف الكاميرا بعد الالتقاط
+        stream.getTracks().forEach(track => track.stop());
+
+        button.textContent = "تم التقاط الصورة ✓";
+        button.disabled = true;
+        message.textContent = "";
+
+        console.log("Photo captured:", photo);
 
       } catch (error) {
         console.error(error);
 
-        message.textContent =
-          "لم يتم السماح باستخدام الكاميرا. تأكد من إعطاء الإذن للمتصفح.";
+        if (error.name === "NotAllowedError") {
+          message.textContent = "يجب السماح باستخدام الكاميرا أولاً.";
+        } else {
+          message.textContent = "تعذر التقاط الصورة.";
+        }
       }
     });
   </script>
 
 </body>
-  </html>
+</html>
